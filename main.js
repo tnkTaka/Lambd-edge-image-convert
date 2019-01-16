@@ -58,7 +58,7 @@ exports.handler = (event, context, callback) => {
 
     // フォーマットのバリデーション
     const splitImageUri = decodeURIComponent(request.uri).split('.');
-    if (splitBucket.length !== 2) {
+    if (splitImageUri.length !== 2) {
         responseNotFound()
         return;
     }
@@ -109,11 +109,14 @@ exports.handler = (event, context, callback) => {
                 .toBuffer();
         })
         .then(buffer => {
-            response.status = '200';
-            response.headers['content-type'] = [{ key: 'Content-Type', value: `image/${options.format}` }];
-            response.body = buffer.toString('base64');
-            response.bodyEncoding = 'base64';
-            callback(null, response);
+            const response = {
+                status: '200',
+                headers: [{ key: 'Content-Type', value: `image/${options.format}` }],
+                body: buffer.toString('base64'),
+                bodyEncoding: 'base64'
+            }
+
+            context(null, response);
         })
         .catch(error => {
             if (error instanceof FormatError) {
@@ -124,24 +127,33 @@ exports.handler = (event, context, callback) => {
         });
 
     function responseBadRequest(message) {
-        response.status = '400';
-        response.headers['content-type'] = [{ key: 'Content-Type', value: 'text/plain' }];
-        response.body = message;
-        callback(null, response);
+        const response = {
+            status: '400',
+            headers: [{ key: 'Content-Type', value: 'text/plain' }],
+            body: message,
+        }
+
+        context(null, response);
     }
 
     function responseNotFound() {
-        response.status = '404';
-        response.headers['content-type'] = [{ key: 'Content-Type', value: 'text/plain' }];
-        response.body = `${request.uri} is not found.`;
-        callback(null, response);
+        const response = {
+            status: '404',
+            headers: [{ key: 'Content-Type', value: 'text/plain' }],
+            body: `${request.uri} is not found.`,
+        }
+
+        context(null, response);
     }
 
     function responseError(message) {
-        response.status = '403';
-        response.headers['content-type'] = [{ key: 'Content-Type', value: 'text/plain' }];
-        response.body = message;
-        callback(null, response);
+        const response = {
+            status: '403',
+            headers: [{ key: 'Content-Type', value: 'text/plain' }],
+            body: `${request.uri} is not found.`,
+        }
+
+        context(null, response);
     }
 };
 
