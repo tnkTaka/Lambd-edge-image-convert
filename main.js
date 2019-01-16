@@ -41,7 +41,7 @@ exports.handler = (event, context, callback) => {
     const splitBucket = S3Options.domainName.split('.', 1);
     let bucket = "";
 
-    if (!splitBucket.length === 1) {
+    if (splitBucket.length !== 1) {
         responseNotFound()
         return;
     } else if (splitBucket[0].length <= 3 || splitBucket[0].length >= 64) {
@@ -58,7 +58,7 @@ exports.handler = (event, context, callback) => {
 
     // フォーマットのバリデーション
     const splitImageUri = decodeURIComponent(request.uri).split('.');
-    if (!splitBucket.length === 2) {
+    if (splitBucket.length !== 2) {
         responseNotFound()
         return;
     }
