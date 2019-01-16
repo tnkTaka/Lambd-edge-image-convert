@@ -18,6 +18,15 @@ const whiteList = [
     },
 ];
 
+const decidedFormat = [
+    'jpg',
+    'JPG',
+    'jpeg',
+    'JPEG',
+    'png',
+    'PNG'
+]
+
 // Lambda関数
 exports.handler = (event, context, callback) => {
     // いくつかのクエリを抽出
@@ -43,30 +52,25 @@ exports.handler = (event, context, callback) => {
 
     if (splitBucket.length !== 1) {
         responseNotFound()
-        return;
     } else if (splitBucket[0].length <= 3 || splitBucket[0].length >= 64) {
         responseNotFound()
-        return;
     }
     bucket = splitBucket[0]
 
     // 入力された画像サイズが数値どうかのバリデーション
     if (Number.isNaN(options.width) || Number.isNaN(options.height)) {
         responseBadRequest("The size must be numerical value")
-        return;
     }
 
     // フォーマットのバリデーション
     const splitImageUri = decodeURIComponent(request.uri).split('.');
     if (splitImageUri.length !== 2) {
         responseNotFound()
-        return;
     }
 
     const ext = splitImageUri[1];
-    if (ext !== 'jpg' && ext !== 'jpeg' && ext !== 'png') {
+    if (decidedFormat.includes(ext)) {
         responseBadRequest("Invalid format")
-        return;
     }
     options.format = ext;
 
@@ -97,13 +101,16 @@ exports.handler = (event, context, callback) => {
         })
         .then(metadata => {
             // 念のため拡張子だけでなく画像フォーマットをチェック
-            if (metadata.format !== 'jpeg' || metadata.format !== 'png') {
-                return Promise.reject(new FormatError('The original file format must be jpeg or png.'));
+            if (!decidedFormat.includes(metadata.format)){
+                // 404返す
+                return Promise.reject(new FormatErr('The original file format must be jpeg or png.'));
             }
             // 引き伸ばしはしない
             options.width = metadata.width < options.width ? metadata.width : options.width;
             options.height = metadata.height < options.height ? metadata.height : options.height;
-            sharpBody.resize(options.width, options.height).max();
+            sharpBody.resize(options.width, options.height),{
+                fit:"inside"
+            };
             return sharpBody
                 .rotate()
                 .toBuffer();
@@ -119,11 +126,8 @@ exports.handler = (event, context, callback) => {
             context(null, response);
         })
         .catch(error => {
-            if (error instanceof FormatError) {
-                responseError(error.message);
-                return;
-            }
-            responseNotFound();
+            // エラーハンドリングする
+
         });
 
     function responseBadRequest(message) {
@@ -156,5 +160,3 @@ exports.handler = (event, context, callback) => {
         context(null, response);
     }
 };
-
-class FormatError extends Error { }
